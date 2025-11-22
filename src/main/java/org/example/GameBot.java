@@ -1,6 +1,7 @@
 package org.example;
 
 import ai.djl.Model;
+import ai.djl.engine.Engine;
 import ai.djl.inference.Predictor;
 import ai.djl.modality.Classifications;
 import ai.djl.modality.cv.Image;
@@ -23,10 +24,10 @@ import ai.djl.translate.Translator;
 import ai.djl.translate.TranslatorContext;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
-import com.google.gson.JsonObject;
 import okhttp3.*; // 引入 OkHttp
 
 import java.awt.*;
+import java.awt.event.InputEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,21 +35,86 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class GameBot {
 
-    // --- 新增：HTTP 客户端配置 ---
+    public static class AppConfig {
+        public String key;
+        public Map<String, GameBot.ButtonConfig> resolutions;
+    }
+
+    public static class ButtonConfig {
+        public int x;
+        public int y;
+    }
+
+    // --- 全局变量 ---
+    private static GameBot.AppConfig fullConfig;
+    private static GameBot.ButtonConfig currentButtonConfig;
+
+    private static final String CONFIG_FILE_NAME = "config.json";
     private static final OkHttpClient client = new OkHttpClient();
-    // 你的接收端 API 地址 (请修改这里)
+
     private static final String BASE_API_URL = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=";
-     // 记录上一次发送通知的时间戳
+    private static String fullApiUrl = null;
+
+    // 逻辑控制变量
     private static long lastNotificationTime = 0;
-    // 冷却时间：5分钟 (毫秒)
     private static final long COOLDOWN = 5 * 60 * 1000;
+    private static long lastClickTime = 0;
+    private static final long CLICK_COOLDOWN = 5000;
+    private static boolean loadConfig() {
+        try {
+            Path path = Paths.get(CONFIG_FILE_NAME);
+            if (!Files.exists(path)) {
+                System.err.println("错误: 未找到 " + CONFIG_FILE_NAME);
+                return false;
+            }
+            String jsonContent = Files.readString(path);
+            fullConfig = JSON.parseObject(jsonContent, GameBot.AppConfig.class);
+
+            if (fullConfig == null || fullConfig.key == null || fullConfig.resolutions == null) {
+                System.err.println("错误: JSON 格式不对，缺少 key 或 resolutions");
+                return false;
+            }
+
+            fullApiUrl = BASE_API_URL + fullConfig.key;
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private static boolean matchResolution() {
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int w = (int) screenSize.getWidth();
+        int h = (int) screenSize.getHeight();
+        String currentKey = w + "x" + h;
+        System.out.println(">>> 检测到当前屏幕分辨率: " + currentKey);
+
+        if (fullConfig.resolutions.containsKey(currentKey)) {
+            currentButtonConfig = fullConfig.resolutions.get(currentKey);
+            System.out.println(">>> 成功匹配配置！点击坐标: (" + currentButtonConfig.x + ", " + currentButtonConfig.y + ")");
+            return true;
+        } else {
+            System.err.println(">>> 错误: 配置文件 config.json 中没有包含 [" + currentKey + "] 的配置！");
+            return false;
+        }
+    }
 
     public static void main(String[] args) throws Exception {
+        System.out.println(">>> 当前 DJL 库版本: " + Engine.getInstance().getVersion());
         // --- 第一步：启动时读取配置文件 ---
-        loadApiUrlFromConfig();
+        if (!loadConfig()) {
+            return;
+        }
+
+        // 2. 自动匹配分辨率
+        if (!matchResolution()) {
+            return;
+        }
         List<String> classes = Arrays.asList("game", "login", "select");
 
         // ... (神经网络结构代码保持不变，为了节省篇幅省略，请保留原样) ...
@@ -136,6 +202,7 @@ public class GameBot {
                                 break;
                             case "select":
                                 // 选人逻辑
+                                handleSelectLogic(robot);
                                 break;
                         }
                     }
@@ -149,29 +216,30 @@ public class GameBot {
             }
         }
     }
-    private static String fullApiUrl = null;
-    private static final String CONFIG_FILE_NAME = "config.txt";
+
     // --- 新增：读取配置文件方法 ---
-    private static void loadApiUrlFromConfig() {
-        try {
-            Path path = Paths.get(CONFIG_FILE_NAME);
-            if (Files.exists(path)) {
-                // 读取文件内容并去除首尾空格
-                String param = Files.readString(path).trim();
-                if (!param.isEmpty()) {
-                    fullApiUrl = BASE_API_URL + param;
-                    System.out.println(">>> 成功加载配置文件，API地址: " + fullApiUrl);
-                } else {
-                    System.err.println(">>> 警告: config.txt 是空的！无法发送通知。");
-                }
-            } else {
-                System.err.println(">>> 警告: 未找到 " + CONFIG_FILE_NAME + "，无法发送通知。");
-                System.err.println(">>> 请在程序目录下创建 config.txt 并填入参数。");
-            }
-        } catch (IOException e) {
-            System.err.println(">>> 读取配置文件出错: " + e.getMessage());
+    private static void handleSelectLogic(Robot robot) {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastClickTime < CLICK_COOLDOWN) {
+            return;
         }
+
+        // --- 打印当前分辨率 ---
+        Dimension size = Toolkit.getDefaultToolkit().getScreenSize();
+        String currentResolution = (int)size.getWidth() + "x" + (int)size.getHeight();
+        System.out.println(">>> [Check] 准备点击，当前屏幕分辨率为: " + currentResolution);
+
+        int x = currentButtonConfig.x;
+        int y = currentButtonConfig.y;
+
+        System.out.println(">>> 执行点击动作: 坐标 (" + x + ", " + y + ")");
+        robot.mouseMove(x, y);
+        robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+        robot.delay(100);
+        robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        lastClickTime = currentTime;
     }
+
     // --- 发送 POST 请求的方法 (异步) ---
     private static void sendPostRequest(String currentStatus) {
         JSONObject jsonObject = new JSONObject();

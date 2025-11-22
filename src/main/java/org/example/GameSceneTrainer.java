@@ -33,7 +33,7 @@ public class GameSceneTrainer {
         int imageWidth = 128;
         int imageHeight = 128;
         int batchSize = 32;
-        int epochs = 20;
+        int epochs = 1;
         Path modelDir = Paths.get("build/model");
         Files.createDirectories(modelDir);
 

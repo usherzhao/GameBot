@@ -1,4 +1,4 @@
-package org.example;
+package bot;
 
 import ai.djl.Model;
 import ai.djl.engine.Engine;

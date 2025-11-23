@@ -70,8 +70,8 @@
                     <transformers>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                            <mainClass>org.example.GameBot</mainClass>
-<!--                            <mainClass>org.example.GameSceneTrainer</mainClass>-->
+                            <mainClass>bot.GameBot</mainClass>
+<!--                            <mainClass>bot.GameSceneTrainer</mainClass>-->
                         </transformer>
                     </transformers>
                 </configuration>

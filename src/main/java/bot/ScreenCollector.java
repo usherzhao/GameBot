@@ -1,4 +1,4 @@
-package org.example;
+package bot;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

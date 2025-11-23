@@ -39,11 +39,12 @@ ProjectRoot/
   └── build/             # 构建目录
        └── model/        # AI 模型文件夹 (必须包含 .params 文件)
             └── game-classifier-0000.params
+```
 ## 2. 配置文件 (config.json)
 请在项目根目录下创建 config.json，填入你的企业微信 Webhook Key 和不同分辨率下的按钮坐标。
 
-JSON
-```text
+```JSON
+
 {
   "key": "你的企业微信Webhook_Key", 
   "resolutions": {
@@ -61,6 +62,31 @@ JSON
     }
   }
 }
+```
 key: 对应企业微信 Webhook URL key= 后面的字符串。
 
 resolutions: 键必须是 宽x高 格式。程序启动时会自动检测当前屏幕分辨率，并匹配对应的点击坐标。
+
+### 3. 在 IDEA 中运行
+打开 src/main/java/bot/GameBot.java (或你的实际包路径)。
+
+右键点击 -> Run 'GameBot.main()'。
+
+注意: 确保 IDEA 的 "Working directory" (工作目录) 设置为项目根目录，否则会提示找不到 config.json。
+
+## 💻 开发者指南
+### 1. 环境准备JDK 11 或更高版本。Maven 3.x。首次运行需要等待 Maven 下载 PyTorch 原生引擎库（约 200MB）。
+### 2. 模型训练 (GameSceneTrainer)如果你需要更新 AI 的识别能力：将采集好的截图分类放入 dataset/game, dataset/login, dataset/select 目录。运行 GameSceneTrainer.java。训练完成后，模型会自动保存到 build/model 目录。主程序 GameBot 会直接读取 build/model 下的最新模型，无需手动复制。
+### 3.  状态与逻辑说明状态
+状态 (Class),描述,触发行为
+,正常挂机画面,维持心跳，无操作。
+login,游戏登录/掉线界面,视为异常状态。若持续 5 分钟，发送企业微信通知。
+select,角色选择界面,视为准备就绪。读取 config.json 中的坐标，点击“进入游戏”按钮（含 5秒 冷却防抖）。
+|状态 (Class)|描述|触发行为|
+|-|-|-|
+|game|正常挂机画面|维持心跳，无操作。|
+|login|游戏登录/掉线界面|视为异常状态。若持续 5 分钟，发送企业微信通知。。|
+|select|角色选择界面|视为准备就绪。读取 config.json 中的坐标，点击“进入游戏”按钮（含 5秒 冷却防抖）。。|
+
+# ⚠️ 免责声明
+本项目仅供 Java AI 技术研究与学习 使用。 请勿将本软件用于违反游戏服务条款（ToS）的行为。作者不对任何账号封禁或损失负责。

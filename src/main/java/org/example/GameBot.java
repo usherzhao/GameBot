@@ -41,7 +41,7 @@ public class GameBot {
 
     public static class AppConfig {
         public String key;
-        public Map<String, GameBot.ButtonConfig> resolutions;
+        public Map<String, ButtonConfig> resolutions;
     }
 
     public static class ButtonConfig {
@@ -50,8 +50,8 @@ public class GameBot {
     }
 
     // --- 全局变量 ---
-    private static GameBot.AppConfig fullConfig;
-    private static GameBot.ButtonConfig currentButtonConfig;
+    private static AppConfig fullConfig;
+    private static ButtonConfig currentButtonConfig;
 
     private static final String CONFIG_FILE_NAME = "config.json";
     private static final OkHttpClient client = new OkHttpClient();

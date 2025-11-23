@@ -39,7 +39,7 @@ ProjectRoot/
   └── build/             # 构建目录
        └── model/        # AI 模型文件夹 (必须包含 .params 文件)
             └── game-classifier-0000.params
-### 2. 配置文件 (config.json)
+## 2. 配置文件 (config.json)
 请在项目根目录下创建 config.json，填入你的企业微信 Webhook Key 和不同分辨率下的按钮坐标。
 
 JSON
